@@ -60,7 +60,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     $timeout zoomBackOut, 500
 
   $scope.loading = true
-  $http.get("//localhost:8888/v2/#{$scope.id}.json").then (response) ->
+  $http.get("http://clog.local:8888/v2/#{$scope.id}.json").then (response) ->
     data = response.data
     $scope.zoom = Zoomer.zoom_image
       container: "map1"
