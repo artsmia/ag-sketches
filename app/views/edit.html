@@ -1,0 +1,22 @@
+<div id='map1' ng-class="{loading:loading}"></div>
+
+<section id="annotations">
+  <ul>
+    <li ng-repeat="annotation in annotations" ng-mouseenter="panToAnnotation(annotation)" ng-mouseleave="deactivate(annotation)" ng-class="{active: annotation == activeNote}">
+      <textarea ng-model="annotation.body"></textarea>
+      <a ng-click='removeAnnotation(annotation)'>(remove)</a>
+    </li>
+  </ul>
+  <nav id="controls">
+    <a ng-click="resetZoom()">Full Image</a>
+    <a class="back" href="/">All Objects</a>
+  </nav>
+</section>
+
+<!--
+  TODO:
+  * move markers, update annotation
+  * clicking an annotation highlights it in the list
+  * show annotation geometry region with annotation text (maplet?)
+  * Don't let shift-drag do it's thing unless the bounds is greater than a certain size
+  -->
