@@ -7,6 +7,10 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.id = $routeParams.objectId
   annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes', $scope, 'annotations', [])
 
+  # map $scope.annotations to their corresponding leaflet markers, we don't want those in firebase
+  $scope.annotationsMarkers = {}
+  $scope.getMarkerLayerForAnnotation = (note) -> $scope.annotationsMarkers[note.geometry]
+
   # Add annotations to the map from firebase
   # `$scope.annotationsOnMap` indicates the animations that are already drawn,
   # so I can $scope.$watch for when annotations change and add any new ones that
@@ -15,6 +19,9 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.addAnnotations = (_new, old) ->
     console.log(_new, old)
     angular.forEach $scope.annotations, (note) ->
+      if note.removed
+        $scope.removeAnnotation(note)
+        console.log(note, "REMOVED")
       return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
       $scope.annotationsOnMap.push note.geometry
       $scope.annotate
@@ -23,8 +30,14 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
         _annotation: note
 
   $scope.removeAnnotation = (annotation) ->
-    $scope.annotations.splice($scope.annotations.indexOf(annotation), 1)
-    $scope.zoom.map.removeLayer(zoomer.map._layers[annotation.marker]) if annotation.marker
+    console.log "remove", annotation
+    window.removing_note = annotation
+    if marker = $scope.getMarkerLayerForAnnotation(annotation)
+      console.log "removing", annotation, marker
+      $scope.zoom.map.removeLayer(zoomer.map._layers[marker])
+    $scope.removedAnnotations = annotation.geometry
+    annotation.removed = true # this tells other clients to remove the annotation
+    $timeout (-> $scope.annotations.splice($scope.annotations.indexOf(annotation), 1)), 500
     $scope.resetZoom()
 
   # Add an annotation
@@ -43,14 +56,17 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
     marker.addTo(zoomer.map)
 
-    if note = options._annotation
-      note.marker = marker._leaflet_id
-      note
+    note = if note = options._annotation
+      options._annotation
     else
-      $scope.annotations.push
+      ann = $scope.annotations.push
         body: options.body || 'New Annotation'
         geometry: stringified_geometry
-        marker: marker._leaflet_id
+
+    $scope.annotationsMarkers[stringified_geometry] = marker._leaflet_id
+    console.log("mapping annotation ", stringified_geometry, " to marker ", marker)
+    note
+
 
   $scope.panToAnnotation = (ann) ->
     geometry = eval(ann.geometry)
