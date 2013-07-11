@@ -7,10 +7,18 @@
       <a ng-click='removeAnnotation(annotation)'>(remove)</a>
     </li>
   </ul>
-  <nav id="controls">
-    <a ng-click="resetZoom()">Full Image</a>
-    <a class="back" href="/">All Objects</a>
-  </nav>
+  <section id="tools">
+    <nav id="controls">
+      <a ng-click="resetZoom()">Full Image</a>
+      <a class="back" href="/">All Objects</a>
+      <a class="help" ng-click="toggleHelp()">???</a>
+    </nav>
+    <section id="help" ng-class="{hidden: !showHelp}">
+      <p><strong>command-click</strong> to annotate a single point</p>
+      <p><strong>shift-drag</strong> to annotate a region of the image</p>
+      <p><strong>+/- or doubleclick</strong> to zoom in</p>
+    </section>
+  </section>
 </section>
 
 <!--

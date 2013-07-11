@@ -83,5 +83,6 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.$apply()
 
     $scope.resetZoom = -> $scope.zoom.map.centerImageAtExtents()
+    $scope.toggleHelp = -> $scope.showHelp = !!!$scope.showHelp
 ]
 
