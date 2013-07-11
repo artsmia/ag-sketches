@@ -6,13 +6,21 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   window.$scope = $scope
   $scope.id = $routeParams.objectId
   annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes', $scope, 'annotations', [])
-  $scope.addAnnotations = ->
-    angular.forEach $scope.annotations, (ann) ->
+
+  # Add annotations to the map from firebase
+  # `$scope.annotationsOnMap` indicates the animations that are already drawn,
+  # so I can $scope.$watch for when annotations change and add any new ones that
+  # come from another machine.
+  $scope.annotationsOnMap = []
+  $scope.addAnnotations = (_new, old) ->
+    console.log(_new, old)
+    angular.forEach $scope.annotations, (note) ->
+      return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
+      $scope.annotationsOnMap.push note.geometry
       $scope.annotate
-        body: ann.body
-        geometry: eval(ann.geometry)
-        _annotation: ann
-        , false
+        body: note.body
+        geometry: eval(note.geometry)
+        _annotation: note
 
   $scope.removeAnnotation = (annotation) ->
     $scope.annotations.splice($scope.annotations.indexOf(annotation), 1)
@@ -35,9 +43,9 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
     marker.addTo(zoomer.map)
 
-    if ann = options._annotation
-      options._annotation.marker = marker._leaflet_id
-      ann
+    if note = options._annotation
+      note.marker = marker._leaflet_id
+      note
     else
       $scope.annotations.push
         body: options.body || 'New Annotation'
@@ -71,6 +79,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     annotationsPromise.then ->
       $scope.addAnnotations()
       $scope.loading = false
+      $scope.$watch 'annotations', $scope.addAnnotations
 
     $scope.zoom.map.on 'click touch', (touch) ->
       if touch.originalEvent.metaKey
