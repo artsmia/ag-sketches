@@ -1,5 +1,5 @@
 {
-  "name": "packery",
+  "name": "ag-sketches",
   "version": "0.0.0",
   "dependencies": {
     "angular": "~1.0.5",
@@ -7,8 +7,6 @@
     "es5-shim": "~2.0.8",
     "angular-resource": "~1.0.5",
     "angular-cookies": "~1.0.5",
-    "packery": "~1.0.6",
-    "imagesloaded": "~3.0.1",
     "underscore": "~1.4.4",
     "leaflet": "~0.6.2",
     "angular-fire": "latest"
