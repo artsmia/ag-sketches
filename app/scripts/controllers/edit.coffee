@@ -5,17 +5,23 @@ app = angular.module('africaApp')
 app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$http', 'angularFire', '$timeout', ($scope, $route, $routeParams, $location, $http, firebase, $timeout) ->
   window.$scope = $scope
   $scope.id = $routeParams.objectId
-  annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes', $scope, 'annotations', [])
+  annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2', $scope, 'annotations', [])
 
   # map $scope.annotations to their corresponding leaflet markers, we don't want those in firebase
   $scope.annotationsMarkers = {}
-  $scope.getMarkerLayerForAnnotation = (note) -> $scope.annotationsMarkers[note.geometry]
+  $scope.getMarkerLayerForAnnotation = (note) -> $scope.annotationsMarkers[JSON.stringify(note.geometry)]
 
   # Add annotations to the map from firebase
   # `$scope.annotationsOnMap` indicates the animations that are already drawn,
   # so I can $scope.$watch for when annotations change and add any new ones that
   # come from another machine.
   $scope.annotationsOnMap = []
+  $scope.setupDrawing = ->
+    $scope.annotationsGroup = L.featureGroup()
+    drawControl = new L.Control.Draw {edit: {featureGroup: $scope.annotationsGroup}}
+    $scope.zoom.map.addControl(drawControl)
+    $scope.zoom.map.addLayer($scope.annotationsGroup)
+
   $scope.addAnnotations = (_new, old) ->
     console.log(_new, old)
     angular.forEach $scope.annotations, (note) ->
@@ -23,17 +29,13 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
         $scope.removeAnnotation(note)
         console.log(note, "REMOVED")
       return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
-      $scope.annotationsOnMap.push note.geometry
-      $scope.annotate
-        body: note.body
-        geometry: eval(note.geometry)
-        _annotation: note
+      $scope.annotate note
 
   $scope.removeAnnotation = (annotation) ->
     console.log "remove", annotation
     window.removing_note = annotation
     if marker = $scope.getMarkerLayerForAnnotation(annotation)
-      console.log "removing", annotation, marker
+      console.log "removing", annotation, marker, zoomer.map._layers[marker]
       $scope.zoom.map.removeLayer(zoomer.map._layers[marker])
     $scope.removedAnnotations = annotation.geometry
     annotation.removed = true # this tells other clients to remove the annotation
@@ -43,38 +45,20 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   # Add an annotation
   # Either a single point or a bounding box
   # Save the geometry in an `eval()`able string
-  $scope.annotate = (options) ->
-    [stringified_geometry, marker] = if options.geometry instanceof L.LatLng
-      ll = options.geometry
-      ["L.latLng(" + JSON.stringify([ll.lat, ll.lng]) + ")",
-       L.marker(ll)]
-    else if options.geometry instanceof L.LatLngBounds
-      box = options.geometry
-      [sw, ne] = [box._southWest, box._northEast]
-      ["L.latLngBounds(" + JSON.stringify([[sw.lat, sw.lng], [ne.lat, ne.lng]]) + ")",
-       L.rectangle(box, {color: "#ff7800", weight: 1, test: 1234})]
+  $scope.annotate = (note) ->
+    window.note = note
+    window.json = L.GeoJSON.geometryToLayer(note.geometry)
+    marker = $scope.annotationsGroup.addLayer(json)
+    $scope.annotationsMarkers[JSON.stringify(note.geometry)] = json._leaflet_id
 
-    marker.addTo(zoomer.map)
-
-    note = if note = options._annotation
-      options._annotation
-    else
-      ann = $scope.annotations.push
-        body: options.body || 'New Annotation'
-        geometry: stringified_geometry
-
-    $scope.annotationsMarkers[stringified_geometry] = marker._leaflet_id
-    console.log("mapping annotation ", stringified_geometry, " to marker ", marker)
-    note
-
-
-  $scope.panToAnnotation = (ann) ->
-    geometry = eval(ann.geometry)
-    if geometry instanceof L.LatLngBounds
+  $scope.panToAnnotation = (note) ->
+    geometry = L.GeoJSON.geometryToLayer(note.geometry)
+    console.log geometry
+    unless geometry instanceof L.Marker
       $scope.zoom.map.fitBounds(geometry)
     else
-      $scope.zoom.map.panTo(geometry)
-    $scope.activeNote = ann
+      $scope.zoom.map.panTo(geometry._latlng)
+    $scope.activeNote = note
 
   $scope.deactivate = (ann) ->
     $scope.activeNote = undefined
@@ -84,6 +68,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     $timeout zoomBackOut, 500
 
   $scope.loading = true
+
   $http.get("http://tiles.tdx.artsmia.org/v2/#{$scope.id}.json").then (response) ->
     window.data = response.data
     tileURL = data.tiles[0]#.replace('http://0', '//{s}')
@@ -93,19 +78,16 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       imageWidth: data.width
       imageHeight: data.height
 
+    $scope.setupDrawing()
     annotationsPromise.then ->
       $scope.addAnnotations()
       $scope.loading = false
       $scope.$watch 'annotations', $scope.addAnnotations
 
-    $scope.zoom.map.on 'click touch', (touch) ->
-      if touch.originalEvent.metaKey
-        $scope.annotate {geometry: touch.latlng}
-        $scope.$apply()
-
-    $scope.zoom.map.on 'boxmarkerend', (box) ->
-      $scope.annotate
-        geometry: box.boxZoomBounds
+    $scope.zoom.map.on 'draw:created', (e) ->
+      console.log('e', e, 'layerType', e.layerType, 'layer', e.layer)
+      window.e = e
+      $scope.annotations.push e.layer.toGeoJSON()
       $scope.$apply()
 
     $scope.resetZoom = -> $scope.zoom.map.centerImageAtExtents()
