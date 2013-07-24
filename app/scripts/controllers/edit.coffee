@@ -84,11 +84,12 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     $timeout zoomBackOut, 500
 
   $scope.loading = true
-  $http.get("http://clog.local:8888/v2/#{$scope.id}.json").then (response) ->
-    data = response.data
+  $http.get("http://tiles.tdx.artsmia.org/v2/#{$scope.id}.json").then (response) ->
+    window.data = response.data
+    tileURL = data.tiles[0]#.replace('http://0', '//{s}')
     $scope.zoom = Zoomer.zoom_image
       container: "map1"
-      tileURL: data.tiles[0]
+      tileURL: tileURL
       imageWidth: data.width
       imageHeight: data.height
 
