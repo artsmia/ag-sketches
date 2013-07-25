@@ -18,9 +18,19 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.annotationsOnMap = []
   $scope.setupDrawing = ->
     $scope.annotationsGroup = L.featureGroup()
-    drawControl = new L.Control.Draw {edit: {featureGroup: $scope.annotationsGroup}}
+    drawControl = new L.Control.Draw
+      draw:
+        circle: false
+        polyline: false
+        rectangle: {shapeOptions: {color: '#eee'}}
+      edit: {featureGroup: $scope.annotationsGroup}
     $scope.zoom.map.addControl(drawControl)
     $scope.zoom.map.addLayer($scope.annotationsGroup)
+    $scope.setAnnotationStyle()
+  $scope.setAnnotationStyle = ->
+    $scope.annotationsGroup.setStyle
+      color: '#ddd'
+      weight: 1
 
   $scope.addAnnotations = (_new, old) ->
     console.log(_new, old)
@@ -30,6 +40,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
         console.log(note, "REMOVED")
       return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
       $scope.annotate note
+      $scope.setAnnotationStyle()
 
   $scope.removeAnnotation = (annotation) ->
     console.log "remove", annotation
