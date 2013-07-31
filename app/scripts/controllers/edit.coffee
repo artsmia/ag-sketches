@@ -80,7 +80,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
   $scope.loading = true
 
-  $http.get("http://tiles.tdx.artsmia.org/v2/#{$scope.id}.json").then (response) ->
+  $http.get("http://tiles.dx.artsmia.org/v2/#{$scope.id}.json").then (response) ->
     window.data = response.data
     tileURL = data.tiles[0]#.replace('http://0', '//{s}')
     $scope.zoom = Zoomer.zoom_image
