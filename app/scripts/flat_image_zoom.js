@@ -453,7 +453,7 @@ Zoomer.setupMap = function (zoomer) {
             worldCopyJump: false,
             maxZoom: zoomer.maxZoom,
             inertia: L.Browser.touch,
-            zoomControl: false, // we want custom buttons!
+            zoomControl: true, // we want custom buttons!
             attributionControl: false, // sorry. We'll add something in humans.txt
             scrollWheelZoom: false, // too much page jumping
             doubleClickZoom: false, // we only want single clicks
