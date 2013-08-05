@@ -80,8 +80,21 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
   $scope.loading = true
 
-  $http.get("http://tiles.dx.artsmia.org/v2/#{$scope.id}.json").then (response) ->
-    window.data = response.data
+  tileJson = "http://localhost:8887/#{$scope.id}.tif"
+  $scope.getTiles = ->
+    http = $http.get(tileJson)
+    http.success (data, status) ->
+      $scope.setupMap(data)
+      $scope.tileProgress = ''
+    http.error ->
+      tileProgress = firebase('//tilesaw.firebaseio.com/' + $scope.id, $scope, 'tileProgress', {})
+      cancelWatch = $scope.$watch 'tileProgress', ->
+        if $scope.tileProgress && $scope.tileProgress.status == 'tiled'
+          $scope.getTiles()
+          cancelWatch()
+
+  $scope.getTiles()
+  $scope.setupMap = (data) ->
     tileURL = data.tiles[0]#.replace('http://0', '//{s}')
     $scope.zoom = Zoomer.zoom_image
       container: "map1"
