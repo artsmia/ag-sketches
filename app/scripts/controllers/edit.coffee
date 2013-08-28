@@ -80,7 +80,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
   $scope.loading = true
 
-  tileJson = "http://localhost:8887/#{$scope.id}.tif"
+  tileJson = "http://tilesaw.dx.artsmia.org/#{$scope.id}.tif"
   $scope.getTiles = ->
     http = $http.get(tileJson)
     http.success (data, status) ->
@@ -88,10 +88,11 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.tileProgress = ''
     http.error ->
       tileProgress = firebase('//tilesaw.firebaseio.com/' + $scope.id, $scope, 'tileProgress', {})
-      cancelWatch = $scope.$watch 'tileProgress', ->
-        if $scope.tileProgress && $scope.tileProgress.status == 'tiled'
-          $scope.getTiles()
-          cancelWatch()
+      tileProgress.then (disconnect) ->
+        cancelWatch = $scope.$watch 'tileProgress', ->
+          if $scope.tileProgress && $scope.tileProgress.status == 'tiled'
+            $scope.getTiles()
+            disconnect() && cancelWatch()
 
   $scope.getTiles()
   $scope.setupMap = (data) ->
