@@ -230,7 +230,6 @@ module.exports = function (grunt) {
           src: [
             '<%= yeoman.dist %>/scripts/{,*/}*.js',
             '<%= yeoman.dist %>/styles/{,*/}*.css',
-            '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
             '<%= yeoman.dist %>/styles/fonts/*'
           ]
         }
@@ -251,6 +250,14 @@ module.exports = function (grunt) {
             'styles/fonts/*'
           ]
         }]
+      }
+    },
+    sed: {
+      leafletDrawSprite: {
+        path: 'dist/styles',
+        pattern: 'images/spritesheet.png',
+        replacement: '/images/spritesheet.png',
+        recursive: true
       }
     }
   });
@@ -289,6 +296,7 @@ module.exports = function (grunt) {
     'cdnify',
     'ngmin',
     'uglify',
+    'sed',
     'rev',
     'usemin'
   ]);

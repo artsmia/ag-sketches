@@ -1,5 +1,7 @@
 'use strict'
 
+L.Icon.Default.imagePath = '/images/leaflet'
+
 angular.module('africaApp', ['firebase'])
   .config ['$routeProvider', ($routeProvider) ->
     $routeProvider
