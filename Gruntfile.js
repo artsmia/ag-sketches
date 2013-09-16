@@ -91,7 +91,8 @@ module.exports = function (grunt) {
     },
     jshint: {
       options: {
-        jshintrc: '.jshintrc'
+        jshintrc: '.jshintrc',
+        ignores: ['app/scripts/jquery.js', 'app/scripts/jquery.actual.min.js', 'app/scripts/flat_image_zoom.js']
       },
       all: [
         'Gruntfile.js',
@@ -275,7 +276,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
-    'jshint',
+    // 'jshint',
     'test',
     'coffee',
     'compass:dist',
