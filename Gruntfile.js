@@ -258,7 +258,19 @@ module.exports = function (grunt) {
         pattern: 'images/spritesheet.png',
         replacement: '/images/spritesheet.png',
         recursive: true
+      },
+      fixImagePathForGHPages: {
+        path: 'dist/styles',
+        pattern: '/?images/(.*)',
+        replacement: function(match) { return '/ag-sketches/' + match; },
+        recursive: true
       }
+    },
+    'gh-pages': {
+      options: {
+        base: 'dist'
+      },
+      src: ['**']
     }
   });
 
@@ -296,10 +308,15 @@ module.exports = function (grunt) {
     'cdnify',
     'ngmin',
     'uglify',
-    'sed',
+    'sed:leafletDrawSprite',
     'rev',
     'usemin'
   ]);
 
   grunt.registerTask('default', ['build']);
+
+  grunt.registerTask('gh-pagify', [
+    'sed:fixImagePathForGHPages',
+    'gh-pages'
+  ]);
 };

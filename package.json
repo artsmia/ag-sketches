@@ -28,7 +28,8 @@
     "matchdep": "~0.1.1",
     "grunt-google-cdn": "~0.1.1",
     "grunt-ngmin": "~0.0.2",
-    "grunt-sed": "~0.1.1"
+    "grunt-sed": "~0.1.1",
+    "grunt-gh-pages": "~0.7.2"
   },
   "engines": {
     "node": ">=0.8.0"
