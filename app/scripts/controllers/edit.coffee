@@ -3,8 +3,8 @@
 app = angular.module('africaApp')
 
 app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$http', 'angularFire', '$timeout', ($scope, $route, $routeParams, $location, $http, firebase, $timeout) ->
-  window.$scope = $scope
   $scope.id = $routeParams.objectId
+  $scope.showNotes = !!$location.$$url.match(/showNotes/)
   annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2', $scope, 'annotations', [])
 
   # map $scope.annotations to their corresponding leaflet markers, we don't want those in firebase
