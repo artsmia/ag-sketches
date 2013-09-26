@@ -1,7 +1,7 @@
-<div id='map1' ng-class="{loading:loading}"></div>
+<div id='map1' ng-class="{loading:loading, full: !showNotes}"></div>
 <p id="tile_progress">{{tileProgress.status}}</p>
 
-<section id="annotations">
+<section id="annotations" ng-hide="!showNotes">
   <ul>
     <li ng-repeat="annotation in annotations" ng-mouseenter="panToAnnotation(annotation)" ng-mouseleave="deactivate(annotation)" ng-class="{active: annotation == activeNote}">
       <textarea ng-model="annotation.properties.body"></textarea>

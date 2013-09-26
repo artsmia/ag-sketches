@@ -9,6 +9,9 @@ angular.module('africaApp', ['firebase'])
       .when '/edit/:objectId',
         templateUrl: 'views/edit.html'
         controller: 'EditCtrl'
+      .when '/edit/showNotes/:objectId/',
+        templateUrl: 'views/edit.html'
+        controller: 'EditCtrl'
       .otherwise
         redirectTo: '/'
   ]
