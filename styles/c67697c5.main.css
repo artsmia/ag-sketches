@@ -291,12 +291,12 @@
 	        border-radius: 5px;
 	}
 .leaflet-control-layers-toggle {
-	background-image: url(/ag-sketches/ag-sketches//images/layers.png);
+	background-image: url(/ag-sketches/images/layers.png);
 	width: 36px;
 	height: 36px;
 	}
 .leaflet-retina .leaflet-control-layers-toggle {
-	background-image: url(/ag-sketches/ag-sketches//images/layers-2x.png);
+	background-image: url(/ag-sketches/images/layers-2x.png);
 	background-size: 26px 26px;
 	}
 .leaflet-touch .leaflet-control-layers-toggle {
@@ -491,7 +491,7 @@
 }
 
 .leaflet-draw-toolbar a {
-	background-image: url('/ag-sketches//ag-sketches//images/spritesheet.png');
+	background-image: url('/ag-sketches//images/spritesheet.png');
 	background-repeat: no-repeat;
 }
 
@@ -686,7 +686,7 @@
   width: 100%;
   height: 0.5em;
   content: " ";
-  background: url(/ag-sketches//ag-sketches//images/loading.gif);
+  background: url(/ag-sketches//images/loading.gif);
 }
 
 /* line 9, ../../app/styles/main.sass */
@@ -700,80 +700,84 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
+  width: 60%;
+}
+
+/* line 18, ../../app/styles/main.sass */
+#map1.full {
   width: 100%;
 }
 
-/* line 19, ../../app/styles/main.sass */
+/* line 21, ../../app/styles/main.sass */
 #tile_progress {
   position: absolute;
   bottom: 0;
   right: 3px;
 }
 
-/* line 24, ../../app/styles/main.sass */
+/* line 26, ../../app/styles/main.sass */
 #annotations {
-  display: none;
   width: 40%;
   margin-left: 60%;
   overflow-y: scroll;
   height: 100vh;
 }
-/* line 31, ../../app/styles/main.sass */
+/* line 32, ../../app/styles/main.sass */
 #annotations .active {
   background-color: #eeeeee;
 }
-/* line 34, ../../app/styles/main.sass */
+/* line 35, ../../app/styles/main.sass */
 #annotations ul {
   list-style: none;
   padding: 0;
 }
-/* line 38, ../../app/styles/main.sass */
+/* line 39, ../../app/styles/main.sass */
 #annotations ul li {
   padding: 1em;
 }
-/* line 41, ../../app/styles/main.sass */
+/* line 42, ../../app/styles/main.sass */
 #annotations ul li textarea {
   width: 100%;
   height: 5em;
 }
-/* line 45, ../../app/styles/main.sass */
+/* line 46, ../../app/styles/main.sass */
 #annotations #tools {
   position: absolute;
   bottom: 0;
   width: 40%;
 }
-/* line 50, ../../app/styles/main.sass */
+/* line 51, ../../app/styles/main.sass */
 #annotations #tools a {
   margin: 0 1em;
 }
-/* line 53, ../../app/styles/main.sass */
+/* line 54, ../../app/styles/main.sass */
 #annotations #controls, #annotations help {
   padding: 0.5em;
   margin: 0;
 }
-/* line 56, ../../app/styles/main.sass */
+/* line 57, ../../app/styles/main.sass */
 #annotations #controls {
   background: #aaaaaa;
 }
-/* line 58, ../../app/styles/main.sass */
+/* line 59, ../../app/styles/main.sass */
 #annotations #help {
   -webkit-transition: margin 0.1s ease-in-out;
   padding: 0 0.5em;
 }
-/* line 61, ../../app/styles/main.sass */
+/* line 62, ../../app/styles/main.sass */
 #annotations #help.hidden {
   margin-bottom: -7.5rem;
   display: none;
 }
 
-/* line 67, ../../app/styles/main.sass */
+/* line 68, ../../app/styles/main.sass */
 .objects ul {
   list-style: none;
   -webkit-columns: 6;
   padding: 1em;
   margin: 0;
 }
-/* line 74, ../../app/styles/main.sass */
+/* line 75, ../../app/styles/main.sass */
 .objects li img {
   width: 100%;
 }
