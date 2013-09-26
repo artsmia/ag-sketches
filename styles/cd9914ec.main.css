@@ -291,12 +291,12 @@
 	        border-radius: 5px;
 	}
 .leaflet-control-layers-toggle {
-	background-image: url(/ag-sketches/images/layers.png);
+	background-image: url(/ag-sketches/ag-sketches//images/layers.png);
 	width: 36px;
 	height: 36px;
 	}
 .leaflet-retina .leaflet-control-layers-toggle {
-	background-image: url(/ag-sketches/images/layers-2x.png);
+	background-image: url(/ag-sketches/ag-sketches//images/layers-2x.png);
 	background-size: 26px 26px;
 	}
 .leaflet-touch .leaflet-control-layers-toggle {
@@ -491,7 +491,7 @@
 }
 
 .leaflet-draw-toolbar a {
-	background-image: url('/ag-sketches/images/spritesheet.png');
+	background-image: url('/ag-sketches//ag-sketches//images/spritesheet.png');
 	background-repeat: no-repeat;
 }
 
@@ -686,7 +686,7 @@
   width: 100%;
   height: 0.5em;
   content: " ";
-  background: url(//ag-sketches/images/loading.gif);
+  background: url(/ag-sketches//ag-sketches//images/loading.gif);
 }
 
 /* line 9, ../../app/styles/main.sass */
