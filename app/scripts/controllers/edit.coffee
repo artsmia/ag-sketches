@@ -34,20 +34,15 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       weight: 1
 
   $scope.addAnnotations = (_new, old) ->
-    console.log(_new, old)
     angular.forEach $scope.annotations, (note) ->
       if note.removed
         $scope.removeAnnotation(note)
-        console.log(note, "REMOVED")
       return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
       $scope.annotate note
       $scope.setAnnotationStyle()
 
   $scope.removeAnnotation = (annotation) ->
-    console.log "remove", annotation
-    window.removing_note = annotation
     if marker = $scope.getMarkerLayerForAnnotation(annotation)
-      console.log "removing", annotation, marker, zoomer.map._layers[marker]
       $scope.zoom.map.removeLayer(zoomer.map._layers[marker])
     $scope.removedAnnotations = annotation.geometry
     annotation.removed = true # this tells other clients to remove the annotation
@@ -58,14 +53,13 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   # Either a single point or a bounding box
   # Save the geometry in an `eval()`able string
   $scope.annotate = (note) ->
-    window.note = note
-    window.json = L.GeoJSON.geometryToLayer(note.geometry)
+    note = note
+    json = L.GeoJSON.geometryToLayer(note.geometry)
     marker = $scope.annotationsGroup.addLayer(json)
     $scope.annotationsMarkers[JSON.stringify(note.geometry)] = json._leaflet_id
 
   $scope.panToAnnotation = (note) ->
     geometry = L.GeoJSON.geometryToLayer(note.geometry)
-    console.log geometry
     unless geometry instanceof L.Marker
       $scope.zoom.map.fitBounds(geometry)
     else
@@ -111,8 +105,6 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.$watch 'annotations', $scope.addAnnotations
 
     $scope.zoom.map.on 'draw:created', (e) ->
-      console.log('e', e, 'layerType', e.layerType, 'layer', e.layer)
-      window.e = e
       $scope.annotations.push e.layer.toGeoJSON()
       $scope.$apply()
 
