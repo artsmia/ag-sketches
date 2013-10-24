@@ -7,15 +7,11 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.showNotes = !!$location.$$url.match(/showNotes/)
   annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2', $scope, 'annotations', [])
 
-  # map $scope.annotations to their corresponding leaflet markers, we don't want those in firebase
+  # map $scope.annotations to their corresponding leaflet markers, so we can remove
+  # them later.
   $scope.annotationsMarkers = {}
   $scope.getMarkerLayerForAnnotation = (note) -> $scope.annotationsMarkers[JSON.stringify(note.geometry)]
 
-  # Add annotations to the map from firebase
-  # `$scope.annotationsOnMap` indicates the animations that are already drawn,
-  # so I can $scope.$watch for when annotations change and add any new ones that
-  # come from another machine.
-  $scope.annotationsOnMap = []
   $scope.setupDrawing = ->
     $scope.annotationsGroup = L.featureGroup()
     drawControl = new L.Control.Draw
@@ -33,11 +29,15 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       color: '#ddd'
       weight: 1
 
+  # Add annotations to the map from firebase
+  # `$scope.annotationsMarkers` indicates the animations that are already drawn,
+  # so I can $scope.$watch for when annotations change and add any new ones that
+  # come from another machine.
   $scope.addAnnotations = (_new, old) ->
     angular.forEach $scope.annotations, (note) ->
       if note.removed
         $scope.removeAnnotation(note)
-      return if $scope.annotationsOnMap.indexOf(note.geometry) > -1
+      return if $scope.getMarkerLayerForAnnotation(note)
       $scope.annotate note
       $scope.setAnnotationStyle()
 
@@ -100,7 +100,6 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
 
     $scope.setupDrawing()
     annotationsPromise.then ->
-      $scope.addAnnotations()
       $scope.loading = false
       $scope.$watch 'annotations', $scope.addAnnotations
 
