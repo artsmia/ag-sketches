@@ -7,8 +7,13 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.showNotes = !!$location.$$url.match(/showNotes/)
   annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2', $scope, 'annotations', [])
 
-  # map $scope.annotations to their corresponding leaflet markers, so we can remove
+  # map $scope.annotations to their corresponding leaflet markers, so we can access
   # them later.
+  # It's two way: `stringified json -> _leaflet_id` and
+  # _leaflet_id -> firebase object`.
+  # With the first (`json -> id`) we can check if a given region has been drawn on
+  # the map yet.
+  # The second lets us update firebase when a region is changed through L.draw
   $scope.annotationsMarkers = {}
   $scope.getMarkerLayerForAnnotation = (note) -> $scope.annotationsMarkers[JSON.stringify(note.geometry)]
 
@@ -57,6 +62,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     json = L.GeoJSON.geometryToLayer(note.geometry)
     marker = $scope.annotationsGroup.addLayer(json)
     $scope.annotationsMarkers[JSON.stringify(note.geometry)] = json._leaflet_id
+    $scope.annotationsMarkers[json._leaflet_id] = note
 
   $scope.panToAnnotation = (note) ->
     geometry = L.GeoJSON.geometryToLayer(note.geometry)
@@ -106,6 +112,19 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     $scope.zoom.map.on 'draw:created', (e) ->
       $scope.annotations.push e.layer.toGeoJSON()
       $scope.$apply()
+
+    $scope.zoom.map.on 'draw:edited', (e) ->
+      e.layers.eachLayer (layer) ->
+        if note = $scope.annotationsMarkers[layer._leaflet_id]
+          $scope.annotations[$scope.annotations.indexOf(note)] = layer.toGeoJSON()
+          $scope.$apply()
+
+    $scope.zoom.map.on 'draw:deleted', (e) ->
+      e.layers.eachLayer (layer) ->
+        layerJSON = layer.toGeoJSON()
+        if note = $scope.annotationsMarkers[layer._leaflet_id]
+          $scope.annotations.splice($scope.annotations.indexOf(note), 1)
+          $scope.$apply()
 
     $scope.resetZoom = -> $scope.zoom.map.centerImageAtExtents()
     $scope.toggleHelp = -> $scope.showHelp = !!!$scope.showHelp
