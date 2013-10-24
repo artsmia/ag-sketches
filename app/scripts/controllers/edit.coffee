@@ -22,6 +22,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       draw:
         circle: false
         polyline: false
+        marker: false
         rectangle: {shapeOptions: {color: '#eee'}}
       edit: {featureGroup: $scope.annotationsGroup}
     $scope.zoom.map.addControl(drawControl)
