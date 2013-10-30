@@ -98,6 +98,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.getTiles()
   $scope.setupMap = (data) ->
     tileURL = data.tiles[0].replace('http://0', '//{s}')
+    Zoomer.zoomers = []
     $scope.zoom = Zoomer.zoom_image
       container: "map1"
       tileURL: tileURL
