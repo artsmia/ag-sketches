@@ -1,8 +1,8 @@
 {
   "name": "underscore",
-  "version": "1.5.2",
+  "version": "1.4.4",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jashkenas/underscore.git"
+    "url": "git://github.com/documentcloud/underscore.git"
   }
 }
