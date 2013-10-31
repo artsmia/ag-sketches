@@ -316,6 +316,7 @@ module.exports = function (grunt) {
   grunt.registerTask('default', ['build']);
 
   grunt.registerTask('gh-pagify', [
+    'build',
     'sed:fixImagePathForGHPages',
     'gh-pages'
   ]);
