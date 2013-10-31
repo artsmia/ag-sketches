@@ -9,7 +9,7 @@
     "angular-cookies": "~1.0.5",
     "leaflet": "~0.6.2",
     "angular-fire": "latest",
-    "leaflet.draw": "~0.2.1"
+    "Leaflet.draw": "git://github.com/Leaflet/Leaflet.draw#a25788a7bc96ad7728dcd777afbc84c9a7ba1122"
   },
   "devDependencies": {
     "angular-mocks": "~1.0.5",

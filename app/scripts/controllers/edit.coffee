@@ -111,6 +111,8 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.$watch 'annotations', $scope.addAnnotations
 
     $scope.zoom.map.on 'draw:created', (e) ->
+      if($scope.annotations == null)
+        $scope.annotations = []
       $scope.annotations.push e.layer.toGeoJSON()
       $scope.$apply()
 
@@ -129,7 +131,32 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
           $scope.annotations.splice($scope.annotations.indexOf(note), 1)
           $scope.$apply()
 
+    $scope.zoom.map.on 'draw:editstart', (e) ->
+      map = $scope.zoom.map
+      angular.forEach $scope.annotations, (note) ->
+        map._layers[$scope.getMarkerLayerForAnnotation(note)].on 'dblclick', (e) ->
+          if confirm("Square this?")
+            _note = $scope.annotationsMarkers[@_leaflet_id]
+            squared = @getBounds().toGeoJSON()
+            squared.properties = _note.properties || {no: 'properties'}
+            $scope.annotations[$scope.annotations.indexOf(_note)] = squared
+            $scope.$apply()
+            map.removeLayer(this)
+
+    $scope.zoom.map.on 'draw:editstop', -> $timeout($scope.setAnnotationStyle, 0)
+
     $scope.resetZoom = -> $scope.zoom.map.centerImageAtExtents()
     $scope.toggleHelp = -> $scope.showHelp = !!!$scope.showHelp
 ]
 
+L.extend L.LatLngBounds.prototype,
+  toGeoJSON: ->
+    L.Polygon.prototype.toGeoJSON.call(@)
+
+  getLatLngs: ->
+    L.Polygon.prototype._convertLatLngs([
+      [this.getSouthWest().lat, this.getSouthWest().lng],
+      [this.getNorthWest().lat, this.getNorthWest().lng],
+      [this.getNorthEast().lat, this.getNorthEast().lng],
+      [this.getSouthEast().lat, this.getSouthEast().lng]
+    ])
