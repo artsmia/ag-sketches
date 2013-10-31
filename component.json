@@ -7,7 +7,6 @@
     "es5-shim": "~2.0.8",
     "angular-resource": "~1.0.5",
     "angular-cookies": "~1.0.5",
-    "underscore": "~1.4.4",
     "leaflet": "~0.6.2",
     "angular-fire": "latest",
     "leaflet.draw": "~0.2.1"

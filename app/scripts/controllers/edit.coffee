@@ -98,6 +98,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
   $scope.getTiles()
   $scope.setupMap = (data) ->
     tileURL = data.tiles[0].replace('http://0', '//{s}')
+    Zoomer.zoomers = []
     $scope.zoom = Zoomer.zoom_image
       container: "map1"
       tileURL: tileURL
@@ -116,7 +117,9 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
     $scope.zoom.map.on 'draw:edited', (e) ->
       e.layers.eachLayer (layer) ->
         if note = $scope.annotationsMarkers[layer._leaflet_id]
-          $scope.annotations[$scope.annotations.indexOf(note)] = layer.toGeoJSON()
+          newGeoJSON = layer.toGeoJSON()
+          newGeoJSON.properties = note.properties # Stay linked to the same detail in WP
+          $scope.annotations[$scope.annotations.indexOf(note)] = newGeoJSON
           $scope.$apply()
 
     $scope.zoom.map.on 'draw:deleted', (e) ->
