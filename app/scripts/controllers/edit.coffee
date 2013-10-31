@@ -5,7 +5,7 @@ app = angular.module('africaApp')
 app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$http', 'angularFire', '$timeout', ($scope, $route, $routeParams, $location, $http, firebase, $timeout) ->
   $scope.id = $routeParams.objectId
   $scope.showNotes = !!$location.$$url.match(/showNotes/)
-  annotationsPromise = firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2', $scope, 'annotations', [])
+  annotationsPromise = firebase(new Firebase('//afrx.firebaseIO.com/' + $scope.id + '/notes2'), $scope, 'annotations', [])
 
   # map $scope.annotations to their corresponding leaflet markers, so we can access
   # them later.
@@ -88,7 +88,7 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.setupMap(data)
       $scope.tileProgress = ''
     http.error ->
-      tileProgress = firebase('//tilesaw.firebaseio.com/' + $scope.id, $scope, 'tileProgress', {})
+      tileProgress = firebase(new Firebase('//tilesaw.firebaseio.com/' + $scope.id), $scope, 'tileProgress', {})
       tileProgress.then (disconnect) ->
         cancelWatch = $scope.$watch 'tileProgress', ->
           if $scope.tileProgress && $scope.tileProgress.status == 'tiled'
