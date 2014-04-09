@@ -5,13 +5,11 @@
 // as normal, except that the changes are also sent to all other clients
 // instead of just a server.
 //
-//      AngularFire 0.3
+//      AngularFire 0.2
 //      http://angularfire.com
 //      License: MIT
 
 "use strict";
-
-var AngularFire;
 
 // Define the `firebase` module under which all AngularFire services will live.
 angular.module("firebase", []).value("Firebase", Firebase);
@@ -22,90 +20,84 @@ angular.module("firebase", []).value("Firebase", Firebase);
 angular.module("firebase").factory("angularFire", ["$q", "$parse", "$timeout",
   function($q, $parse, $timeout) {
     // The factory returns a new instance of the `AngularFire` object, defined
-    // below, everytime it is called. The factory takes 3 arguments:
+    // below, everytime it is called. The factory takes 4 arguments:
     //
-    //   * `ref`:    A Firebase reference. Queries or limits may be applied.
+    //   * `ref`:    A Firebase URL or reference. A reference with limits
+    //   or queries applied may be provided.
     //   * `$scope`: The scope with which the bound model is associated.
     //   * `name`:   The name of the model.
-    return function(ref, scope, name) {
+    //   * `type`:   The type of data that will be stored it the model
+    //   (or is present on the Firebase URL provided). Pass in
+    //   `{}` for Object, `[]` for Array (default), `""` for
+    //   String and `true` for Boolean.
+    return function(ref, scope, name, type) {
       var af = new AngularFire($q, $parse, $timeout, ref);
-      return af.associate(scope, name);
+      return af.associate(scope, name, type);
     };
   }
 ]);
 
 // The `AngularFire` object that implements implicit synchronization.
-AngularFire = function($q, $parse, $timeout, ref) {
+function AngularFire($q, $parse, $timeout, ref) {
   this._q = $q;
   this._parse = $parse;
   this._timeout = $timeout;
+
   this._initial = true;
   this._remoteValue = false;
 
+  // `ref` can either be a string (URL to a Firebase location), or a
+  // `Firebase` object.
   if (typeof ref == "string") {
-    throw new Error("Please provide a Firebase reference instead " +
-      "of a URL, eg: new Firebase(url)");
+    this._fRef = new Firebase(ref);
+  } else {
+    this._fRef = ref;
   }
-  this._fRef = ref;
-};
-
+}
 AngularFire.prototype = {
   // This function is called by the factory to create a new 2-way binding
   // between a particular model in a `$scope` and a particular Firebase
   // location.
-  associate: function($scope, name) {
+  associate: function($scope, name, type) {
     var self = this;
+    if (type == undefined) {
+      type = [];
+    }
     var deferred = this._q.defer();
     var promise = deferred.promise;
     // We're currently listening for value changes to implement synchronization.
     // This needs to be optimized, see
     // [Ticket #25](https://github.com/firebase/angularFire/issues/25).
     this._fRef.on("value", function(snap) {
-      var remote = snap.val();
-      // We use toJson/fromJson to remove $$hashKey. Can be replaced by
-      // angular.copy, but only for later version of AngularJS.
-      var local = angular.fromJson(angular.toJson(self._parse(name)($scope)));
-
-      if (self._initial) {
-        // First value received from the server. We try and merge any local
-        // changes that may have been made with the server values.
-        self._initial = false;
-        var merged = false;
-        var check = Object.prototype.toString;
-        if (remote && check.call(local) == check.call(remote)) {
-          if (check.call(local) == "[object Array]") {
-            merged = local.concat(remote);
-            if (!angular.equals(merged, remote)) {
-              self._fRef.ref().set(merged);
-              remote = merged;
-            }
-          } else if (check.call(local) == "[object Object]") {
-            merged = local;
-            for (var key in remote) {
-              merged[key] = remote[key];
-            }
-            self._fRef.ref().update(merged);
-            remote = merged;
-          }
-        }
-        // If remote value is null, overwrite remote value with local
-        if (remote === null && local !== undefined) {
-          self._fRef.ref().set(local);
-          remote = local;
-        }
-        // If types don't match or the type is primitive, just overwrite the
-        // local value with the remote value.
-      }
-
       var resolve = false;
       if (deferred) {
         resolve = deferred;
         deferred = false;
       }
-
+      self._remoteValue = type;
+      if (snap && snap.val() != undefined) {
+        var val = snap.val();
+        // If the remote type doesn't match what was provided, log a message
+        // and exit.
+        if (typeof val != typeof type) {
+          self._log("Error: type mismatch");
+          return;
+        }
+        // Also distinguish between objects and arrays.
+        var check = Object.prototype.toString;
+        if (check.call(type) != check.call(val)) {
+          self._log("Error: type mismatch");
+          return;
+        }
+        self._remoteValue = angular.copy(val);
+        // If the new remote value is the same as the local value, ignore.
+        if (angular.equals(val, self._parse(name)($scope))) {
+          return;
+        }
+      }
       // Update the local model to reflect remote changes.
       self._timeout(function() {
-        self._resolve($scope, name, resolve, remote);
+        self._resolve($scope, name, resolve, self._remoteValue)
       });
     });
     return promise;
@@ -128,21 +120,8 @@ AngularFire.prototype = {
   // will also be updated to the provided value.
   _resolve: function($scope, name, deferred, val) {
     var self = this;
-    if (val === null) {
-      // NULL values are special in Firebase. If received, set the local value
-      // to the initial state for Objects and Arrays.
-      var localVal = $scope[name];
-      if (typeof localVal == "object") {
-        var check = Object.prototype.toString;
-        if (check.call(localVal) == check.call([])) {
-          val = [];
-        } else {
-          val = {};
-        }
-      }
-    }
-    this._remoteValue = angular.copy(val);
     this._parse(name).assign($scope, angular.copy(val));
+    this._remoteValue = angular.copy(val);
     if (deferred) {
       deferred.resolve(function() {
         self.disassociate();
@@ -155,28 +134,19 @@ AngularFire.prototype = {
   _watch: function($scope, name) {
     var self = this;
     self._unregister = $scope.$watch(name, function() {
-      // We ignore local value changes until the first value was received
-      // from the server.
+      // When the local value is set for the first time, via the .on('value')
+      // callback, we ignore it.
       if (self._initial) {
+        self._initial = false;
         return;
       }
       // If the new local value matches the current remote value, we don't
       // trigger a remote update.
-      var val = angular.fromJson(angular.toJson(self._parse(name)($scope)));
+      var val = JSON.parse(angular.toJson(self._parse(name)($scope)));
       if (angular.equals(val, self._remoteValue)) {
         return;
       }
-      var check = Object.prototype.toString;
-      if (check.call(val) == "[object Object]") {
-        // Use update if limits are in effect, set if not.
-        if (self._fRef.set) {
-          self._fRef.set(val);
-        } else {
-          self._fRef.ref().update(val);
-        }
-      } else {
-        self._fRef.ref().set(val);
-      }
+      self._fRef.ref().set(val);
     }, true);
     // Also watch for scope destruction and unregister.
     $scope.$on("$destroy", function() {
@@ -198,46 +168,27 @@ AngularFire.prototype = {
 // by @petebacondarwin.
 angular.module("firebase").factory("angularFireCollection", ["$timeout",
   function($timeout) {
-    return function(collectionRef, initialCb) {
-      if (typeof collectionRef == "string") {
-        throw new Error("Please provide a Firebase reference instead " +
-          "of a URL, eg: new Firebase(url)");
-      }
-
+    return function(collectionUrlOrRef, initialCb) {
       // An internal representation of a model present in the collection.
-      var AngularFireItem = function(ref, index) {
+      function angularFireItem(ref, index) {
         this.$ref = ref.ref();
         this.$id = ref.name();
         this.$index = index;
-        angular.extend(this, {$priority: ref.getPriority()}, ref.val());
-      };
-
-      // Implementation of firebase priority ordering:
-      // https://www.firebase.com/docs/javascript/firebase/setpriority.html
-      var firebaseOrder = [
-        // Partition into [ no priority, number as priority, string as priority ]
-        function(item) {
-          if (item.$priority == null) {
-            return 0;
-          } else if (angular.isNumber(item.$priority)) {
-            return 1;
-          } else if (angular.isString(item.$priority)) {
-            return 2;
-          }
-        },
-        // Within partions, sort first by priority (lexical or numerical,
-        // no priority skips this level of sorting by returning Infinity)
-        function(item) {
-          return item.$priority ? item.$priority : Infinity;
-        },
-        // Finally, sort items of equal priority lexically by name
-        function(item) {
-          return item.$id;
-        }
-      ];
+          angular.extend(this, {priority: ref.getPriority()}, ref.val());
+      }
 
       var indexes = {};
       var collection = [];
+
+      // The provided ref can either be a string (URL to a Firebase location)
+      // or an object of type `Firebase`. Firebase objects with limits or
+      // queries applies may also be provided.
+      var collectionRef;
+      if (typeof collectionUrlOrRef == "string") {
+        collectionRef = new Firebase(collectionUrlOrRef);
+      } else {
+        collectionRef = collectionUrlOrRef;
+      }
 
       function getIndex(prevId) {
         return prevId ? indexes[prevId] + 1 : 0;
@@ -257,13 +208,13 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
       }
 
       // Update an existing child in the local collection.
-      function updateChild(index, item) {
+      function updateChild (index, item) {
         collection[index] = item;
       }
 
       // Move an existing child to a new location in the collection (usually
       // triggered by a priority change).
-      function moveChild(from, to, item) {
+      function moveChild (from, to, item) {
         collection.splice(from, 1);
         collection.splice(to, 0, item);
         updateIndexes(from, to);
@@ -293,7 +244,7 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
       collectionRef.on("child_added", function(data, prevId) {
         $timeout(function() {
           var index = getIndex(prevId);
-          addChild(index, new AngularFireItem(data, index));
+          addChild(index, new angularFireItem(data, index));
           updateIndexes(index);
         });
       });
@@ -311,7 +262,7 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
         $timeout(function() {
           var index = indexes[data.name()];
           var newIndex = getIndex(prevId);
-          var item = new AngularFireItem(data, index);
+          var item = new angularFireItem(data, index);
 
           updateChild(index, item);
           if (newIndex !== index) {
@@ -329,33 +280,17 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
         });
       });
 
-      // `angularFireCollection` exposes four methods on the collection
+      // `angularFireCollection` exposes three methods on the collection
       // returned.
-
-      // Retrieve object by name.
-      collection.getByName = function(name) {
-        return collection[indexes[name]];
-      };
-
-      // Retrieve a collection of objects by names.
-      collection.getByNames = function(names) {
-        var objs = [];
-        for (var i = 0, len = names.length; i < len; i++) {
-          objs.push(collection[indexes[names[i]]]);
-        }
-        return objs;
-      };
 
       // Add an object to the remote collection. Adding an object is the
       // equivalent of calling `push()` on a Firebase reference.
       collection.add = function(item, cb) {
         var ref;
-        // Make sure to remove $$hashKey etc.
-        var newItem = angular.fromJson(angular.toJson(item));
         if (!cb) {
-          ref = collectionRef.ref().push(newItem);
+          ref = collectionRef.ref().push(item);
         } else {
-          ref = collectionRef.ref().push(newItem, cb);
+          ref = collectionRef.ref().push(item, cb);
         }
         return ref;
       };
@@ -371,23 +306,17 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
         }
       };
 
-      // Incrementally update an object in the remote collection.
+      // Update an object in the remote collection.
       collection.update = function(itemOrId, cb) {
         var item = angular.isString(itemOrId) ?
           collection[indexes[itemOrId]] : itemOrId;
-        var copy = angular.fromJson(angular.toJson(item));
-        if (!cb) {
-          item.$ref.update(copy);
-        } else {
-          item.$ref.update(copy, cb);
-        }
-      };
-
-      // Update an object in its entirety in the remote collection.
-      collection.set = function(itemOrId, cb) {
-        var item = angular.isString(itemOrId) ?
-          collection[indexes[itemOrId]] : itemOrId;
-        var copy = angular.fromJson(angular.toJson(item));
+        var copy = {};
+        // Update all properties, unless they're ones created by Angular.
+        angular.forEach(item, function(value, key) {
+          if (key.indexOf("$") !== 0) {
+            copy[key] = value;
+          }
+        });
         if (!cb) {
           item.$ref.set(copy);
         } else {
@@ -395,17 +324,16 @@ angular.module("firebase").factory("angularFireCollection", ["$timeout",
         }
       };
 
-      collection.order = firebaseOrder;
       return collection;
-    };
+    }
   }
 ]);
 
 // Defines the `angularFireAuth` service that provides authentication support
 // for AngularFire.
 angular.module("firebase").factory("angularFireAuth", [
-  "$rootScope", "$parse", "$timeout", "$location", "$route", "$q",
-  function($rootScope, $parse, $timeout, $location, $route, $q) {
+  "$rootScope", "$parse", "$timeout", "$location", "$route",
+  function($rootScope, $parse, $timeout, $location, $route) {
 
     // Helper function to extract claims from a JWT. Does *not* verify the
     // validity of the token.
@@ -415,10 +343,7 @@ angular.module("firebase").factory("angularFireAuth", [
         throw new Error("Invalid JWT");
       }
       var claims = segments[1];
-      if (window.atob) {
-        return JSON.parse(decodeURIComponent(escape(window.atob(claims))));
-      }
-      return token;
+      return JSON.parse(decodeURIComponent(escape(window.atob(claims))));
     }
 
     // Updates the provided model.
@@ -446,7 +371,7 @@ angular.module("firebase").factory("angularFireAuth", [
     }
 
     return {
-      // Initializes the authentication service. Takes a Firebase reference and
+      // Initializes the authentication service. Takes a Firebase URL and
       // an options object, that may contain the following properties:
       //
       // * `scope`: The scope to which user authentication status will be
@@ -461,27 +386,17 @@ angular.module("firebase").factory("angularFireAuth", [
       // `firebase-simple-login.js` file by default. If this value is set to
       // false, this requirement is waived, but only custom login functionality
       // will be enabled.
-      initialize: function(ref, options) {
+      initialize: function(url, options) {
         var self = this;
-
-        if (typeof ref == "string") {
-          throw new Error("Please provide a Firebase reference instead " +
-            "of a URL, eg: new Firebase(url)");
-        }
 
         options = options || {};
         this._scope = $rootScope;
         if (options.scope) {
           this._scope = options.scope;
-        } else {
-          throw new Error("Scope not provided to angularFireAuth!");
         }
         if (options.name) {
           this._name = options.name;
-        } else {
-          throw new Error("Model name not provided to angularFireAuth!");
         }
-
         this._cb = function(){};
         if (options.callback && typeof options.callback === "function") {
           this._cb = options.callback;
@@ -502,9 +417,9 @@ angular.module("firebase").factory("angularFireAuth", [
         }
 
         // Initialize user authentication state to `null`.
-        this._ref = ref;
-        if (options.simple === false) {
-          updateExpression(this._scope, this._name, null, function() {});
+        this._ref = new Firebase(url);
+        if (options.simple && options.simple === false) {
+          updateExpression(this._scope, this._name, null);
           return;
         }
 
@@ -520,7 +435,7 @@ angular.module("firebase").factory("angularFireAuth", [
           if (err) {
             $rootScope.$broadcast("angularFireAuth:error", err);
           } else if (user) {
-            self._loggedIn(user);
+            self._loggedIn(user)
           } else {
             self._loggedOut();
           }
@@ -532,7 +447,6 @@ angular.module("firebase").factory("angularFireAuth", [
       // (for Custom Login) and authenticates the Firebase URL with which
       // the service was initialized.
       login: function(tokenOrProvider, options) {
-        var promise = this._watchForLogin();
         switch (tokenOrProvider) {
         case "github":
         case "persona":
@@ -560,35 +474,9 @@ angular.module("firebase").factory("angularFireAuth", [
               }
             });
           } catch(e) {
-            $rootScope.$broadcast("angularFireAuth:error", e);
+            $rootScope.$broadcast("angularFireAuth:error", e)
           }
         }
-        return promise;
-      },
-
-      // Function cb receives an error as the first argument and a
-      // Simple Login user object as the second argument. Pass noLogin=true
-      // if you don't want the newly created user to also be logged in.
-      createUser: function(email, password, cb, noLogin){
-        var self = this;
-        this._authClient.createUser(email, password, function(err, user){
-          try {
-            if (err) {
-              $rootScope.$broadcast("angularFireAuth:error", err);
-            } else {
-              if (!noLogin) {
-                self.login("password", {email: email, password: password});
-              }
-            }
-          } catch(e) {
-            $rootScope.$broadcast("angularFireAuth:error", e);
-          }
-          if (cb) {
-            $timeout(function(){
-              cb(err, user);
-            });
-          }
-        });
       },
 
       // Unauthenticate the Firebase reference.
@@ -621,34 +509,7 @@ angular.module("firebase").factory("angularFireAuth", [
         updateExpression(this._scope, this._name, null, function() {
           $rootScope.$broadcast("angularFireAuth:logout");
         });
-      },
-
-      _watchForLogin: function() {
-        var subs = [], def = $q.defer();
-        function done(err, user) {
-          // timeout is necessary because it a) allows the auth callbacks to take
-          // effect (applying auth parms before this is invoked) and b) forces
-          // $scope.apply(), which is necessary to make the promise resolve()
-          // event actually get sent to the listeners
-          $timeout(function() {
-            if (err) {
-              def.reject(err);
-            } else {
-              def.resolve(user);
-            }
-          });
-          for (var i=0; i < subs.length; i++) {
-            subs[i]();
-          }
-        }
-        subs.push($rootScope.$on("angularFireAuth:login", function(evt, user) {
-          done(null, user);
-        }));
-        subs.push($rootScope.$on("angularFireAuth:error", function(evt, err) {
-          done(err, null);
-        }));
-        return def.promise;
       }
-    };
+    }
   }
 ]);
