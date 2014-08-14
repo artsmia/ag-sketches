@@ -1,3 +1,4 @@
+<div ng-hide="noImage">
 <div id='map1' ng-class="{loading:loading, full: !showNotes}"></div>
 <p id="tile_progress">{{tileProgress.status}}</p>
 
@@ -21,6 +22,8 @@
     </section>
   </section>
 </section>
+</div>
+<a ng-href="{{objectPage}}" ng-show="noImage">We don't have a valid photo of this. Sorry!</a>
 
 <!--
   TODO:

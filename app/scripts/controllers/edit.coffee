@@ -88,12 +88,8 @@ app.controller 'EditCtrl', ['$scope', '$route', '$routeParams', '$location', '$h
       $scope.setupMap(data)
       $scope.tileProgress = ''
     http.error ->
-      tileProgress = firebase(new Firebase('//tilesaw.firebaseio.com/' + $scope.id), $scope, 'tileProgress', {})
-      tileProgress.then (disconnect) ->
-        cancelWatch = $scope.$watch 'tileProgress', ->
-          if $scope.tileProgress && $scope.tileProgress.status == 'tiled'
-            $scope.getTiles()
-            disconnect() && cancelWatch()
+      $scope.noImage = true
+      $scope.objectPage = "https://collections.artsmia.org/?page=detail&id=#{$scope.id}"
 
   $scope.getTiles()
   $scope.setupMap = (data) ->
