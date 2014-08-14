@@ -1,6 +1,6 @@
 # African Gallery Sketches
 
-Sketching out ideas for the reinstallation. Coming soon.
+[This was an early test for what turned into ["ArtStories"](http://griot.artsmia.org/#/)]
 
 ## Install
 
@@ -18,8 +18,6 @@ The image tiles are being served through
 images are wrapped up in a sqlite3 database instead of
 `{zoom}/{x}/{y}.jpg`. This is only important because image
 width and height is included as metadata in each .mbtiles.
-
-For now the images are tiled and served internally from my machine.
 
 ## Misc
 
